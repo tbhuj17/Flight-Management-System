@@ -1,6 +1,8 @@
 // Please refer the README.md file for detailed report of each and every functions used in the program.
 #include<iostream>
 #include<climits>
+#include<vector>
+
 using namespace std;
 
 
@@ -278,6 +280,42 @@ public:
     {
         head = sort_acc_to_stay_time(head);
     }
+
+    void shortest_path_calculator()
+    {
+        vector<vector<int>> v(4, vector<int>(4));
+        v[0][0] = 0;
+        v[0][1] = 7;
+        v[0][2] = INT_MAX;
+        v[0][3] = 8;
+        v[1][0] = 10;
+        v[1][1] = 0;
+        v[1][2] = 6;
+        v[1][3] = 15;
+        v[2][0] = INT_MAX;         
+        v[2][1] = INT_MAX;
+        v[2][2] = 0;
+        v[2][3] = 12;
+        v[3][0] = 9;
+        v[3][1] = INT_MAX;
+        v[3][2] = INT_MAX;
+        v[3][3] = 0;
+        for(int k = 0;k < 4;k++)
+        {
+            for(int i = 0;i < 4;i++)
+            {
+                for(int j = 0;j < 4;j++)
+                    v[i][j] = min(v[i][j], v[i][k]+v[k][j]);
+            }
+        }
+
+        for(int i = 0;i < 4;i++)
+            {for(int j = 0;j < 4;j++)
+                cout<<v[i][j]<<" ";
+            cout<<endl;}
+        
+        
+    }
 };
 
 int main()
@@ -301,4 +339,5 @@ int main()
     cout<<"Stay time\n";
     fm.get_sorted_on_stay_time();
     fm.print_records();
+    fm.shortest_path_calculator();
 }
