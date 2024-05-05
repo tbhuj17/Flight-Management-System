@@ -1,21 +1,24 @@
-// Please refer the README.md file for detailed report of each and every functions used in the program.
 #include<iostream>
 #include<climits>
+#include<limits>
 #include<vector>
+#include<algorithm>
+#include<queue>
 
 using namespace std;
-
-
+// Class representing a flight
 class Flight
 {
-    string flight_name;
-    int flight_id;
-    int flight_cap;
-    float flight_arrival_time, flight_departure_time;
-    string flight_class;
 public:
-    // ctor
+    string flight_name; // Name of the flight
+    int flight_id; // Unique identifier for the flight
+    int flight_cap; // Capacity of the flight
+    float flight_arrival_time, flight_departure_time; // Arrival and departure times of the flight
+    string flight_class; // Class of the flight (e.g., economy, business)
+
+    // Default constructor
     Flight(){}
+    // Parameterized constructor
     Flight(string f_name, int f_id, int f_cap, float f_at, float f_dt,
     string flight_class)
     {
@@ -26,13 +29,14 @@ public:
         this->flight_departure_time = f_dt;
     }
     friend class FlightManagement;
+    friend class LinkedListNode;
 };
 
+// Class representing a node in a linked list
 class LinkedListNode
 {
-
-    Flight *obj;
-    LinkedListNode *next;
+    Flight *obj; // Pointer to a Flight object
+    LinkedListNode *next; // Pointer to the next node in the linked list
     LinkedListNode(){}
     LinkedListNode(Flight *obj){
         this->obj = obj;
@@ -42,18 +46,32 @@ class LinkedListNode
     friend class Flight;
 };
 
+// Custom comparison function for sorting flights based on different criteria
+bool compareFlights(Flight* a, Flight* b, string criterion) {
+    if (criterion == "arrival_time") {
+        return a->flight_arrival_time < b->flight_arrival_time;
+    } else if (criterion == "departure_time") {
+        return a->flight_departure_time < b->flight_departure_time;
+    } else {
+        return (a->flight_departure_time - a->flight_arrival_time) < (b->flight_departure_time - b->flight_arrival_time);
+    }
+}
+
+// Class for managing flights
 class FlightManagement
 {
-    LinkedListNode *head;
-    LinkedListNode *tail;
-    int size;
+    LinkedListNode *head; // Pointer to the head of the linked list
+    LinkedListNode *tail; // Pointer to the tail of the linked list
+    int size; // Size of the linked list
 public:
+    // Constructor
     FlightManagement()
     {
         this->size = 0;
         head = NULL;
         tail = NULL;
     }
+    // Function to insert a new record of a flight
     void insert_record(string flight_name, int flight_id,int flight_cap,
     float flight_arrival_time, float flight_departure_time, string flight_class)
     {
@@ -74,26 +92,35 @@ public:
         size++;
     }
 
+    // Function to delete a record of a flight
     void delete_record(int id)
     {
         LinkedListNode *temp = head;
+        LinkedListNode *prev = NULL;
         bool flag = false;
-        while(temp->next != NULL)
+        while(temp != NULL)
         {
-            if(temp->next->obj->flight_id == id)
+            if(temp->obj->flight_id == id)
             {
-                temp->next = temp->next->next;
+                if(prev == NULL) {
+                    head = head->next;
+                } else {
+                    prev->next = temp->next;
+                    if(temp == tail) tail = prev;
+                }
+                delete temp;
                 flag = true;
+                size--;
+                cout<<"Record deleted successfully.\n";
+                break;
             }
+            prev = temp;
             temp = temp->next;
         }
-        if(flag == true){
-            size--;
-            cout<<"Record deleted successfully.\n";
-        }
-        else cout<<"No such record exists.\n";
-        
+        if(!flag) cout<<"No such record exists.\n";    
     }
+
+    // Function to print all flight records
     void print_records()
     {
         LinkedListNode *temp = head;
@@ -106,58 +133,45 @@ public:
         }
     }
     
+    // Function to get the number of flights
     int get_no_of_flights()
     {
         return size;
     }
 
+    // Function to check if the flight management system is empty
     bool is_empty()
     {
-        if(size == 0) return 1;
-        return 0;
+        return size == 0;
     }
 
-    float get_flight_with_longest_stay()
+    // Function to merge two linked lists based on specified criteria
+    LinkedListNode* merge(LinkedListNode* a, LinkedListNode* b, string criterion) 
     {
-        LinkedListNode *temp = head;
-        float maxstay = 0.00;
-        while(temp->next->next != NULL)
+        LinkedListNode *c = new LinkedListNode();
+        LinkedListNode *temp = c;
+        while(a != NULL && b != NULL)
         {
-            maxstay = max(temp->next->obj->flight_departure_time - 
-                temp->next->obj->flight_arrival_time, maxstay);
+            if(compareFlights(a->obj, b->obj, criterion))
+            {
+                temp->next = a;
+                a = a->next;
+            }
+            else
+            {
+                temp->next= b;
+                b = b->next;
+            }
             temp = temp->next;
         }
-        return maxstay;
-    }
-
-    LinkedListNode* merge_acc_to_arrival_time(LinkedListNode* a, LinkedListNode* b) 
-    {
-        // SC O(1)
-        LinkedListNode *c = new LinkedListNode();
-        LinkedListNode *temp = c;
-        while(a != NULL && b != NULL)
-        {
-            if(a->obj->flight_arrival_time <= b->obj->flight_arrival_time)
-            {
-                temp->next = a;
-                a = a->next;
-                temp = temp->next; 
-            }
-            else
-            {
-                temp->next= b;
-                b = b->next;
-                temp = temp->next;
-            }
-
-        }
         if(a == NULL) temp->next = b;
         else temp->next = a;
         return c->next;
     }
-    LinkedListNode* sort_acc_to_arr_time(LinkedListNode* head) {
+
+    // Function to sort the linked list based on specified criteria
+    LinkedListNode* merge_sort(LinkedListNode* head, string criterion) {
         if(head == NULL || head->next == NULL) return head;
-        // to find the left middle elem
         LinkedListNode *slow = head;
         LinkedListNode *fast = head;
         while(fast->next != NULL && fast->next->next != NULL)
@@ -165,179 +179,146 @@ public:
             slow = slow->next;
             fast = fast->next->next;
         }
-        // now slow is at left middle
         LinkedListNode *left = head;
         LinkedListNode *right = slow->next;
         slow->next = NULL;
-        left = sort_acc_to_arr_time(left);
-        right = sort_acc_to_arr_time(right);
-        LinkedListNode *c = merge_acc_to_arrival_time(left, right);
+        left = merge_sort(left, criterion);
+        right = merge_sort(right, criterion);
+        LinkedListNode *c = merge(left, right, criterion);
         return c;
     }
 
-    LinkedListNode* merge_acc_to_departure_time(LinkedListNode* a, LinkedListNode* b) 
+    // Function to sort the flights based on specified criterion
+    void sort_flights(string criterion)
     {
-        // SC O(1)
-        LinkedListNode *c = new LinkedListNode();
-        LinkedListNode *temp = c;
-        while(a != NULL && b != NULL)
-        {
-            if(a->obj->flight_departure_time <= b->obj->flight_departure_time)
-            {
-                temp->next = a;
-                a = a->next;
-                temp = temp->next; 
-            }
-            else
-            {
-                temp->next= b;
-                b = b->next;
+        head = merge_sort(head, criterion);
+    }
+
+    // Function to calculate the shortest path between airports using Dijkstra's algorithm
+    void shortest_path_calculator(int source, int destination)
+    {
+        // Initialize distances to infinity
+        vector<int> dist(size, INT_MAX);
+        // Priority queue to store vertices and their distances from the source
+        priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> pq;
+        // Set distance of source to 0
+        dist[source] = 0;
+        pq.push({0, source});
+
+        // Dijkstra's algorithm
+        while (!pq.empty()) {
+            int u = pq.top().second;
+            pq.pop();
+
+            LinkedListNode *temp = head;
+            while (temp != NULL) {
+                if (temp->obj->flight_id == u) {
+                    break;
+                }
                 temp = temp->next;
             }
 
-        }
-        if(a == NULL) temp->next = b;
-        else temp->next = a;
-        return c->next;
-    }
+            // Traverse all adjacent vertices of u
+            while (temp != NULL) {
+                int v = temp->obj->flight_id;
+                int weight = 1; // Assuming equal weight for all edges
 
-    LinkedListNode* sort_acc_to_dep_time(LinkedListNode* head) {
-        if(head == NULL || head->next == NULL) return head;
-        // to find the left middle elem
-        LinkedListNode *slow = head;
-        LinkedListNode *fast = head;
-        while(fast->next != NULL && fast->next->next != NULL)
-        {
-            slow = slow->next;
-            fast = fast->next->next;
-        }
-        // now slow is at left middle
-        LinkedListNode *left = head;
-        LinkedListNode *right = slow->next;
-        slow->next = NULL;
-        left = sort_acc_to_dep_time(left);
-        right = sort_acc_to_dep_time(right);
-        LinkedListNode *c = merge_acc_to_departure_time(left, right);
-        return c;
-    }
-    LinkedListNode* merge_acc_to_stay_time(LinkedListNode* a, LinkedListNode* b) 
-    {
-        // SC O(1)
-        LinkedListNode *c = new LinkedListNode();
-        LinkedListNode *temp = c;
-        while(a != NULL && b != NULL)
-        {
-            if(a->obj->flight_departure_time - a->obj->flight_arrival_time <= 
-                b->obj->flight_departure_time - b->obj->flight_arrival_time)
-            {
-                temp->next = a;
-                a = a->next;
-                temp = temp->next; 
-            }
-            else
-            {
-                temp->next= b;
-                b = b->next;
+                // Relaxation step
+                if (dist[v] > dist[u] + weight) {
+                    dist[v] = dist[u] + weight;
+                    pq.push({dist[v], v});
+                }
+
                 temp = temp->next;
             }
-
-        }
-        if(a == NULL) temp->next = b;
-        else temp->next = a;
-        return c->next;
-    }
-
-    LinkedListNode* sort_acc_to_stay_time(LinkedListNode* head) {
-        if(head == NULL || head->next == NULL) return head;
-        // to find the left middle elem
-        LinkedListNode *slow = head;
-        LinkedListNode *fast = head;
-        while(fast->next != NULL && fast->next->next != NULL)
-        {
-            slow = slow->next;
-            fast = fast->next->next;
-        }
-        // now slow is at left middle
-        LinkedListNode *left = head;
-        LinkedListNode *right = slow->next;
-        slow->next = NULL;
-        left = sort_acc_to_stay_time(left);
-        right = sort_acc_to_stay_time(right);
-        LinkedListNode *c = merge_acc_to_stay_time(left, right);
-        return c;
-    }
-    void get_sorted_on_arrival_time()
-    {
-        head = sort_acc_to_arr_time(head);
-    }
-
-    void get_sorted_on_departure_time()
-    {
-       head = sort_acc_to_dep_time(head);
-    }
-
-    void get_sorted_on_stay_time()
-    {
-        head = sort_acc_to_stay_time(head);
-    }
-
-    void shortest_path_calculator()
-    {
-        vector<vector<int>> v(4, vector<int>(4));
-        v[0][0] = 0;
-        v[0][1] = 7;
-        v[0][2] = INT_MAX;
-        v[0][3] = 8;
-        v[1][0] = 10;
-        v[1][1] = 0;
-        v[1][2] = 6;
-        v[1][3] = 15;
-        v[2][0] = INT_MAX;         
-        v[2][1] = INT_MAX;
-        v[2][2] = 0;
-        v[2][3] = 12;
-        v[3][0] = 9;
-        v[3][1] = INT_MAX;
-        v[3][2] = INT_MAX;
-        v[3][3] = 0;
-        for(int k = 0;k < 4;k++)
-        {
-            for(int i = 0;i < 4;i++)
-            {
-                for(int j = 0;j < 4;j++)
-                    v[i][j] = min(v[i][j], v[i][k]+v[k][j]);
-            }
         }
 
-        for(int i = 0;i < 4;i++)
-            {for(int j = 0;j < 4;j++)
-                cout<<v[i][j]<<" ";
-            cout<<endl;}
-        
-        
+        // Output the shortest distance from source to destination
+        cout << "Shortest distance from " << source << " to " << destination << " is: " << dist[destination] << endl;
     }
 };
-
+void clearInputBuffer() {
+    // Read and discard characters until newline is encountered
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+}
+// Main function
 int main()
 {
+    // Create an instance of FlightManagement
     FlightManagement fm;
-    fm.insert_record("SpiceJet", 126, 300, 16.00, 24.00, "VVIP");
-    fm.insert_record("SpiceJet", 125, 300, 18.00, 20.00, "Public");
-    fm.insert_record("AirIndia", 122, 300, 14.00, 15.00, "VIP");
-    fm.insert_record("SpiceJet", 121, 300, 12.00, 23.00, "VVIP");
-    cout<<"Normal printing\n";
-    fm.print_records();
-    cout<<endl;
-    cout<<"Arr time\n";
-    fm.get_sorted_on_arrival_time();
-    fm.print_records();
-    cout<<endl;
-    cout<<"dep time\n";
-    fm.get_sorted_on_departure_time();
-    fm.print_records();
-    cout<<endl;
-    cout<<"Stay time\n";
-    fm.get_sorted_on_stay_time();
-    fm.print_records();
-    fm.shortest_path_calculator();
+
+    // Menu-driven loop
+    int choice;
+    do {
+        cout << "\nFlight Management System Menu:\n";
+        cout << "1. Insert a flight record\n";
+        cout << "2. Delete a flight record\n";
+        cout << "3. Print all flight records\n";
+        cout << "4. Sort flights\n";
+        cout << "5. Calculate shortest path between airports\n";
+        cout << "0. Exit\n";
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        switch(choice) {
+            case 1: {
+                string flight_name, flight_class;
+                int flight_id, flight_cap;
+                float flight_arrival_time, flight_departure_time;
+                cout << "Enter flight name: ";
+                getline(cin, flight_name);
+                clearInputBuffer();
+                cout << "Enter flight ID: ";
+                cin >> flight_id;
+                cout << "Enter flight capacity: ";
+                cin >> flight_cap;
+                cout << "Enter arrival time: ";
+                cin >> flight_arrival_time;
+                cout << "Enter departure time: ";
+                cin >> flight_departure_time;
+                cout << "Enter flight class: ";
+                cin >> flight_class;
+                fm.insert_record(flight_name, flight_id, flight_cap, flight_arrival_time, flight_departure_time, flight_class);
+                break;
+            }
+            case 2: {
+                int id;
+                cout << "Enter the flight ID to delete: ";
+                cin >> id;
+                fm.delete_record(id);
+                break;
+            }
+            case 3: {
+                cout << "Flight records:\n";
+                fm.print_records();
+                break;
+            }
+            case 4: {
+                string criterion;
+                cout << "Enter sorting criterion (arrival_time/departure_time/stay_time): ";
+                cin >> criterion;
+                fm.sort_flights(criterion);
+                cout << "Flights sorted based on " << criterion << ":\n";
+                fm.print_records();
+                break;
+            }
+            case 5: {
+                int source, destination;
+                cout << "Enter source airport ID: ";
+                cin >> source;
+                cout << "Enter destination airport ID: ";
+                cin >> destination;
+                fm.shortest_path_calculator(source, destination);
+                break;
+            }
+            case 0: {
+                cout << "Exiting...\n";
+                break;
+            }
+            default:
+                cout << "Invalid choice. Please enter a valid option.\n";
+        }
+    } while(choice != 0);
+
+    return 0;
 }
